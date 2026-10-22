@@ -1,3 +1,4 @@
+from numpy.ma.extras import column_stack
 from sklearn.tree import DecisionTreeClassifier
 import matplotlib.pyplot as plt
 import numpy as np
@@ -164,7 +165,7 @@ if __name__ == "__main__":
     X, y = load_data()
     print("Data shapes:", X.shape, y.shape)
     print("Classes:", np.unique(y))
-    dt = DecisionTreeClassifier(random_state=0)
+    dt = DecisionTreeClassifier(random_state=0, ccp_alpha=0.001)
     dt.fit(X, y)
     print("Tree depth:", dt.get_depth(), "leaves:", dt.get_n_leaves())
 

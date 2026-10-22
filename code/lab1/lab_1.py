@@ -6,8 +6,8 @@ This file is the worked example referred to in the lab sheet. It shows
   need for the timing experiment.
 * Task 2: how to load the two data files in ``data/lab1`` with pandas.
 
-The Numba version, DTW, preprocessing pipeline, and single-feature classifier
-are left for you to write. The Euclidean function below is a working example.
+The exercises themselves (the Numba version, DTW, the preprocessing pipeline and
+the single feature classifier) are left for you to write.
 """
 
 import math
@@ -23,14 +23,20 @@ DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "lab1"
 
 
 def euclidean_distance_python(x: np.ndarray, y: np.ndarray) -> float:
-    """Return Euclidean distance using one loop over equal-length 1D arrays."""
-    total = 0.0
-    for i in range(len(x)):
-        difference = x[i] - y[i]
-        total += difference * difference
-    return math.sqrt(total)
+    sum = 0
+    for i in range(x.size):
+        sum += (x[i] - y[i]) ** 2
+    return math.sqrt(sum)
 
+from numba import njit
+import math
 
+@njit(cache=True)
+def euclidean_distance_numba(x, y):
+    sum = 0
+    for i in range(x.size):
+        sum += (x[i] - y[i]) ** 2
+    return math.sqrt(sum)
 
 def time_distance(distance_function, n: int, random_state: int = 0) -> float:
     """Time a single call of ``distance_function`` on two random series of length n.

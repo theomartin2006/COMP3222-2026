@@ -1,10 +1,15 @@
 """Lab 4, Task 1: time series data, distances and nearest neighbours (student starter)."""
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numba import njit
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 from aeon.datasets import load_basic_motions, load_gunpoint
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.utils.multiclass import check_classification_targets
+from sklearn.utils.validation import validate_data, check_is_fitted
 
 
 def plot_examples(X, y, n_per_class=3):
@@ -18,12 +23,17 @@ def plot_examples(X, y, n_per_class=3):
     plt.show()
 
 
+@njit(cache=True)
 def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
     """Return the Euclidean distance between two equal-length 1D series."""
-    # You wrote this in Lab 1. Add @njit(cache=True) from numba for speed.
-    raise NotImplementedError("Implement euclidean_distance")
+    total = 0.0
+    for i in range(len(x)):
+        difference = x[i] - y[i]
+        total += difference * difference
+    return math.sqrt(total)
 
 
+@njit(cache=True)
 def dtw_distance(x: np.ndarray, y: np.ndarray) -> float:
     """Return the DTW cost between two 1D series.
 
@@ -32,7 +42,17 @@ def dtw_distance(x: np.ndarray, y: np.ndarray) -> float:
     """
     # See the Lab 1 optional extension and code/lab1/lab1_task1_solution.py.
     # C = np.full((n + 1, m + 1), np.inf); C[0, 0] = 0.0
-    raise NotImplementedError("Implement dtw_distance")
+    m = len(x)
+    costs = np.full((m + 1, m + 1), np.inf)
+    costs[0, 0] = 0.0
+
+    for i in range(1, m + 1):
+        for j in range(1, m + 1):
+            difference = x[i - 1] - y[j - 1]
+            costs[i, j] = difference**2 + min(
+                costs[i - 1, j - 1], costs[i - 1, j], costs[i, j - 1]
+            )
+    return costs[m, m]
 
 
 def check_distances():
@@ -57,12 +77,37 @@ class OneNearestNeighbour(ClassifierMixin, BaseEstimator):
 
     def fit(self, X, y):
         # TODO: Store the training series, labels and classes_.
-        raise NotImplementedError("Implement OneNearestNeighbour.fit")
+        X = X.reshape(X.shape[0], -1)
+        X, y = validate_data(self, X, y)
+        check_classification_targets(y)
+        self.X_train_ = X.copy()
+        self.y_train_ = y.copy()
+        self.classes_ = np.unique(y)
+        return self
 
     def predict(self, X):
         # TODO: For each case in X, find the closest training case using the
         # chosen distance on channel 0 and return its label.
-        raise NotImplementedError("Implement OneNearestNeighbour.predict")
+        check_is_fitted(self)
+        X = X.reshape(X.shape[0], -1)
+        X = validate_data(self, X)
+        predictions = []
+
+        for case in X:
+            nearest_index = 0
+            nearest_distance = np.inf
+            for i, training_example in enumerate(self.X_train_):
+                if self.distance == "euclidean":
+                    distance = euclidean_distance(case, training_example)
+                elif self.distance == "dtw":
+                    distance = dtw_distance(case, training_example)
+
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_index = i
+            predictions.append(self.y_train_[nearest_index])
+
+        return np.asarray(predictions, dtype=self.y_train_.dtype)
 
 
 if __name__ == "__main__":
@@ -75,8 +120,23 @@ if __name__ == "__main__":
     print(f"BasicMotions train: X {X_motion.shape}, classes {np.unique(y_motion)}")
 
     # TODO: Use plot_examples to look at both problems.
+    plot_examples(X_train, y_train)
     # TODO: Implement the distances, then call check_distances().
+    print()
+    check_distances()
+
+    print()
+    oneNN = OneNearestNeighbour(distance="dtw").fit(X_train, y_train)
+    print("Predictions:", oneNN.predict(X_test))
+    print("Training accuracy:", oneNN.score(X_test, y_test))
+
     # TODO: Fit RandomForestClassifier on X_train[:, 0, :] and record test accuracy.
+
+    print()
+    rfc = RandomForestClassifier().fit(X_train[:, 0, :], y_train)
+    print("Training accuracy for RFC:", oneNN.score(X_test, y_test))
+    np.random.default_rng(0).permutation(150)
+
     # TODO: Shuffle the timepoints with one permutation for train and test, then repeat.
     # TODO: Compare OneNearestNeighbour with "euclidean" and "dtw", before and after
     #       shuffling, and check against KNeighborsTimeSeriesClassifier in aeon.

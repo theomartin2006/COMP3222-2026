@@ -7,7 +7,10 @@ Complete the steps below using Lab Sheet 2. The data-loading step is provided.
 from pathlib import Path
 
 import pandas as pd
-
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "lab2" / "playgolf.csv"
 
@@ -31,10 +34,25 @@ if __name__ == "__main__":
     # ColumnTransformer and OneHotEncoder can do this in a Pipeline.
     # Check that the transformed X has shape (14, 6).
 
+    decisionTree = DecisionTreeClassifier()
+
+    ct = ColumnTransformer([("outlook", OneHotEncoder(), [0])], remainder='passthrough')
+    pipe = Pipeline(steps=[("ct", ct), ("tree", decisionTree)])
+
+    pipe.fit(X, y)
     # B. Fit a DecisionTreeClassifier to the numeric features and y.
     # Use sklearn.tree.plot_tree with feature_names and class_names.
     # If you used a Pipeline, plot its fitted tree step, not the Pipeline itself.
     # How does this tree compare with the one from the lecture?
+
+    import matplotlib.pyplot as plt
+    from sklearn import tree
+
+
+    plt.figure(dpi=600)
+    tree.plot_tree(decisionTree, feature_names=pipe[:-1].get_feature_names_out(), class_names=["yes","no"])
+    plt.tight_layout()
+    plt.show()
 
     # Try ExtraTreeClassifier as well. Compare the two trees and their
     # training predictions. What would you need to compare them fairly on

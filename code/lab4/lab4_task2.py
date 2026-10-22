@@ -24,7 +24,15 @@ def summary_features(X: np.ndarray) -> np.ndarray:
     X has shape (n_cases, n_channels, n_timepoints); the result should have
     shape (n_cases, 5 * n_channels). See L4.2 slide 9.
     """
-    raise NotImplementedError("Implement summary_features")
+    features = []
+    for case in X:
+        mean = np.mean(case)
+        standard_deviation = np.std(case)
+        minimum = np.min(case)
+        maximum = np.max(case)
+        case_slope = slope(case)[0]
+        features.append([mean, standard_deviation, minimum, maximum, case_slope])
+    return np.asarray(features, dtype=float)
 
 
 def check_functions():
@@ -40,10 +48,10 @@ class SummaryTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, X, y=None):
         # Nothing needs to be learned, but fit must still return self.
-        raise NotImplementedError("Implement SummaryTransformer.fit")
+        return self
 
     def transform(self, X):
-        raise NotImplementedError("Implement SummaryTransformer.transform")
+        return summary_features(X)
 
 
 class RandomIntervalTransformer(TransformerMixin, BaseEstimator):
@@ -60,6 +68,8 @@ class RandomIntervalTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, X, y=None):
         # TODO: rng = np.random.default_rng(self.random_state)
+        rng = np.random.default_rng(self.random_state)
+
         # TODO: Store the chosen intervals in self.intervals_.
         raise NotImplementedError("Implement RandomIntervalTransformer.fit")
 
@@ -77,6 +87,7 @@ if __name__ == "__main__":
 
     # TODO: Implement summary_features, call check_functions() and print the
     #       feature shapes for GunPoint and BasicMotions.
+    check_functions()
     # TODO: Compare RandomForestClassifier on the raw series, on summary
     #       features and on random interval features (use make_pipeline).
     # TODO: Try Catch22 + RandomForestClassifier and TimeSeriesForestClassifier.
